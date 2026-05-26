@@ -2,18 +2,16 @@ package puppy.code;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
-public class Menu implements Screen{
-    private Main game;
+public class Menu extends BaseScreen {
+    private Main juego;
     private SpriteBatch batch;
     private BitmapFont font;
 
-    public Menu(Main game) {
-        this.game = game;
+    public Menu(Main juego) {
+        this.juego = juego;
     }
 
     @Override
@@ -23,23 +21,24 @@ public class Menu implements Screen{
     }
 
     @Override
-    public void render(float delta) {
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        batch.begin();
-        font.draw(batch, "TECLA ENTER PARA JUGAR", 200, 300);
-        batch.end();
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            game.setScreen(new PlayGame(game));
-        }
+    protected void update(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1))
+            juego.setScreen(new PlayGame(juego, new ModoFacil()));
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2))
+            juego.setScreen(new PlayGame(juego, new ModoNormal()));
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3))
+            juego.setScreen(new PlayGame(juego, new ModoDificil()));
     }
 
-    @Override public void resize(int width, int height) {}
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
+    @Override
+    protected void draw(float delta) {
+        batch.begin();
+        font.draw(batch, "Selecciona dificultad:", 200, 340);
+        font.draw(batch, "[1] Facil", 200, 310);
+        font.draw(batch, "[2] Normal", 200, 280);
+        font.draw(batch, "[3] Dificil", 200, 250);
+        batch.end();
+    }
 
     @Override
     public void dispose() {

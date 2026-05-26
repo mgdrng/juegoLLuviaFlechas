@@ -1,6 +1,5 @@
 package puppy.code;
 
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
@@ -24,6 +23,8 @@ public class PlayGame extends BaseScreen{
     private float spawnTimer = 0f;
     private Random rng = new Random();
 
+    private ModoDificultad dificultad = new ModoNormal();
+
     private float tamanio = 45f;
     private float spacing = 55f;
     private float inicioX;
@@ -31,20 +32,18 @@ public class PlayGame extends BaseScreen{
     private float panelW  = 65f;
     private float panelX  = 10f;
 
-    // ── Sistema de vidas y puntos ──────────────────────────
     private int vidas  = 3;
     private int puntos = 0;
 
-    // Ventana de acierto: ±margen píxeles respecto a golpeY
     private float margenGolpe = 30f;
 
-    // Estado "herido" (igual que Tarro)
-    private boolean herido        = false;
-    private int     tiempoHerido  = 0;
-    private int     tiempoHeridoMax = 50;
+    private boolean herido = false;
+    private int tiempoHerido    = 0;
+    private int tiempoHeridoMax = 50;
 
-    public PlayGame(Main juego) {
+    public PlayGame(Main juego, ModoDificultad dificultad) {
         this.juego = juego;
+        this.dificultad = dificultad;
     }
 
     @Override
@@ -67,41 +66,40 @@ public class PlayGame extends BaseScreen{
     @Override
     protected void update(float tiempoFrame) {
 
-        // Si no hay vidas, volver al menú
         if (vidas <= 0) {
             juego.setScreen(new Menu(juego));
             return;
         }
 
-        // Cooldown de herido
         if (herido) {
             tiempoHerido--;
             if (tiempoHerido <= 0) herido = false;
         }
 
-        // Spawn de flechas
         spawnTimer += tiempoFrame;
-        if (spawnTimer >= 0.8f) {
+        if (spawnTimer >= dificultad.getIntervaloSpawn()) {
             spawnTimer = 0f;
             int carril = rng.nextInt(4);
             flechas.add(new Flechas(carril, carrilX(carril), Gdx.graphics.getHeight()));
         }
 
-        // Mover flechas y detectar eventos
+        boolean izq    = Gdx.input.isKeyJustPressed(Input.Keys.LEFT);
+        boolean abajo  = Gdx.input.isKeyJustPressed(Input.Keys.DOWN);
+        boolean arriba = Gdx.input.isKeyJustPressed(Input.Keys.UP);
+        boolean der    = Gdx.input.isKeyJustPressed(Input.Keys.RIGHT);
+
         for (int i = flechas.size - 1; i >= 0; i--) {
             Flechas f = flechas.get(i);
-            f.mover(220f * tiempoFrame);
+            f.mover(dificultad.getVelocidad() * tiempoFrame);
 
-            // Flecha pasó la zona de golpe sin ser presionada → pierde vida
             if (f.getY() + tamanio < 0) {
                 flechas.removeIndex(i);
                 dañar();
                 continue;
             }
 
-            // Detectar tecla correcta cuando la flecha está en la zona de golpe
             if (Math.abs(f.getY() - golpeY) <= margenGolpe) {
-                if (teclaCorrecta(f.getTipo())) {
+                if (teclaCorrecta(f.getTipo(), izq, abajo, arriba, der)) {
                     flechas.removeIndex(i);
                     puntos += 10;
                 }
@@ -111,7 +109,6 @@ public class PlayGame extends BaseScreen{
 
     @Override
     protected void draw(float tiempoFrame) {
-        // Paneles de carril
         dibujoPaneles.begin(ShapeRenderer.ShapeType.Filled);
         dibujoPaneles.setColor(0.12f, 0.12f, 0.12f, 1f);
         for (int carril = 0; carril < 4; carril++) {
@@ -121,12 +118,10 @@ public class PlayGame extends BaseScreen{
 
         lote.begin();
 
-        // HUD: vidas y puntos
-        font.draw(lote, "Puntos: " + puntos, 5,   Gdx.graphics.getHeight() - 5);
+        font.draw(lote, "Puntos: " + puntos, 5, Gdx.graphics.getHeight() - 5);
         font.draw(lote, "Vidas: "  + vidas,  Gdx.graphics.getWidth() - 120,
             Gdx.graphics.getHeight() - 5);
 
-        // Flechas cayendo (parpadeo si está herido)
         if (!herido || (tiempoHerido % 6 < 3)) {
             for (int i = 0; i < flechas.size; i++) {
                 Flechas flecha = flechas.get(i);
@@ -135,7 +130,6 @@ public class PlayGame extends BaseScreen{
             }
         }
 
-        // Flechas estáticas zona de golpe
         lote.draw(flechaIzquierda, carrilX(0), golpeY, tamanio, tamanio);
         lote.draw(flechaAbajo,     carrilX(1), golpeY, tamanio, tamanio);
         lote.draw(flechaArriba,    carrilX(2), golpeY, tamanio, tamanio);
@@ -144,26 +138,24 @@ public class PlayGame extends BaseScreen{
         lote.end();
     }
 
-    // ── Helpers ───────────────────────────────────────────
-
     private void dañar() {
         vidas--;
         herido       = true;
         tiempoHerido = tiempoHeridoMax;
     }
 
-    /** Devuelve true si se presionó la tecla que corresponde al tipo de flecha */
-    private boolean teclaCorrecta(int tipo) {
+    private boolean teclaCorrecta(int tipo, boolean izq, boolean abajo, boolean arriba, boolean der) {
         switch (tipo) {
-            case 0: return Gdx.input.isKeyJustPressed(Input.Keys.LEFT);
-            case 1: return Gdx.input.isKeyJustPressed(Input.Keys.DOWN);
-            case 2: return Gdx.input.isKeyJustPressed(Input.Keys.UP);
-            default: return Gdx.input.isKeyJustPressed(Input.Keys.RIGHT);
+            case 0:  return izq;
+            case 1:  return abajo;
+            case 2:  return arriba;
+            default: return der;
         }
     }
 
     @Override
     public void dispose() {
+        super.dispose();
         lote.dispose();
         dibujoPaneles.dispose();
         font.dispose();
