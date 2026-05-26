@@ -1,0 +1,10 @@
+bucket.png
+drop.png
+drop.wav
+dropBad.png
+flechaDown.png
+flechaLeft.png
+flechaRight.png
+flechaUp.png
+hurt.ogg
+rain.mp3
